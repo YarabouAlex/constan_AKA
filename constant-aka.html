@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Constant Aka — Réalisateur de clips vidéo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Manrope:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0a0a0e;
+    --bg-panel: #121218;
+    --bg-panel-2: #17171f;
+    --ink: #f4f3f7;
+    --ink-muted: #9997a8;
+    --pink: #ff2e7e;
+    --cyan: #00e0ff;
+    --gold: #ffc93c;
+    --violet: #8b5cf6;
+    --line: rgba(244,243,247,0.1);
+    --grad: linear-gradient(90deg, var(--pink), var(--violet) 50%, var(--cyan));
+  }
+
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Manrope', sans-serif;
+    overflow-x:hidden;
+    -webkit-font-smoothing:antialiased;
+  }
+  ::selection{ background:var(--pink); color:#0a0a0e; }
+
+  h1,h2,h3, .display{
+    font-family:'Anton', sans-serif;
+    font-weight:400;
+    letter-spacing:0.5px;
+    text-transform:uppercase;
+    line-height:0.95;
+  }
+  .mono{ font-family:'Space Mono', monospace; }
+
+  a{ color:inherit; text-decoration:none; }
+  img{max-width:100%; display:block;}
+  section{ position:relative; }
+  .wrap{ max-width:1180px; margin:0 auto; padding:0 32px; }
+
+  /* film grain overlay */
+  .grain{
+    position:fixed; inset:0; pointer-events:none; z-index:9998; opacity:0.05; mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  /* ---------- CLAPPERBOARD PRELOADER ---------- */
+  #preloader{
+    position:fixed; inset:0; background:#000; z-index:10000;
+    display:flex; align-items:center; justify-content:center;
+    animation: fadeOutPre 0.6s ease 1.9s forwards;
+  }
+  .slate{
+    width:min(70vw,420px); aspect-ratio:4/3; position:relative;
+  }
+  .slate-top{
+    position:absolute; top:0; left:0; width:100%; height:22%;
+    background:repeating-linear-gradient(115deg,#111 0 24px,#f4f3f7 24px 48px);
+    border-radius:6px 6px 0 0;
+    transform-origin:left bottom;
+    animation: clap 1.9s cubic-bezier(.4,0,.2,1) forwards;
+    box-shadow:0 4px 12px rgba(0,0,0,0.5);
+  }
+  .slate-body{
+    position:absolute; top:20%; left:0; width:100%; height:80%;
+    background:#141418; border:2px solid #2a2a33; border-radius:0 0 6px 6px;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px;
+    padding:20px;
+  }
+  .slate-body .name{ font-family:'Anton'; color:var(--ink); font-size:clamp(20px,4vw,32px); text-transform:uppercase; letter-spacing:1px;}
+  .slate-body .role{ font-family:'Space Mono'; color:var(--pink); font-size:12px; letter-spacing:3px; text-transform:uppercase;}
+  @keyframes clap{
+    0%{ transform:rotate(-28deg); }
+    18%{ transform:rotate(0deg); }
+    75%{ transform:rotate(0deg); }
+    100%{ transform:rotate(0deg); }
+  }
+  @keyframes fadeOutPre{
+    to{ opacity:0; visibility:hidden; }
+  }
+
+  /* ---------- NAV ---------- */
+  header{
+    position:fixed; top:0; left:0; right:0; z-index:500;
+    padding:22px 0;
+    transition:all .35s ease;
+  }
+  header.scrolled{
+    background:rgba(10,10,14,0.85); backdrop-filter:blur(10px);
+    padding:14px 0; border-bottom:1px solid var(--line);
+  }
+  nav{ display:flex; align-items:center; justify-content:space-between; }
+  .logo{ font-family:'Anton'; font-size:22px; letter-spacing:1px; }
+  .logo span{ color:var(--pink); }
+  .nav-links{ display:flex; gap:36px; list-style:none; }
+  .nav-links a{
+    font-family:'Space Mono'; font-size:12px; letter-spacing:2px; text-transform:uppercase;
+    color:var(--ink-muted); position:relative; padding-bottom:4px;
+    transition:color .25s ease;
+  }
+  .nav-links a::after{
+    content:''; position:absolute; left:0; bottom:0; width:0; height:1px; background:var(--grad);
+    transition:width .3s ease;
+  }
+  .nav-links a:hover{ color:var(--ink); }
+  .nav-links a:hover::after{ width:100%; }
+  .burger{ display:none; flex-direction:column; gap:5px; cursor:pointer; background:none; border:none; }
+  .burger span{ width:26px; height:2px; background:var(--ink); display:block; }
+
+  /* ---------- HERO ---------- */
+  .hero{
+    min-height:100vh; display:flex; flex-direction:column; justify-content:center;
+    padding-top:120px; position:relative;
+    background:
+      radial-gradient(ellipse 60% 50% at 15% 20%, rgba(255,46,126,0.18), transparent 60%),
+      radial-gradient(ellipse 55% 45% at 85% 75%, rgba(0,224,255,0.14), transparent 60%),
+      var(--bg);
+  }
+  .eyebrow{
+    font-family:'Space Mono'; font-size:12px; letter-spacing:4px; text-transform:uppercase; color:var(--gold);
+    display:flex; align-items:center; gap:12px; margin-bottom:22px;
+  }
+  .eyebrow::before{ content:''; width:34px; height:1px; background:var(--gold); }
+  .hero h1{
+    font-size:clamp(52px, 10vw, 128px);
+    background:var(--grad); background-size:220% 100%;
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+    animation:gradShift 8s ease infinite;
+  }
+  @keyframes gradShift{ 0%,100%{background-position:0% 50%;} 50%{background-position:100% 50%;} }
+  .hero .sub{
+    margin-top:20px; max-width:560px; font-size:19px; color:var(--ink-muted); line-height:1.6;
+  }
+  .hero .cta-row{ margin-top:44px; display:flex; gap:18px; flex-wrap:wrap; }
+  .btn{
+    font-family:'Space Mono'; font-size:13px; letter-spacing:1.5px; text-transform:uppercase;
+    padding:16px 30px; border-radius:100px; display:inline-flex; align-items:center; gap:10px;
+    transition:transform .25s ease, box-shadow .25s ease;
+  }
+  .btn-primary{
+    background:var(--grad); background-size:200% 100%; color:#0a0a0e; font-weight:700;
+  }
+  .btn-primary:hover{ transform:translateY(-3px); box-shadow:0 10px 30px rgba(255,46,126,0.35); }
+  .btn-ghost{ border:1px solid var(--line); color:var(--ink); }
+  .btn-ghost:hover{ border-color:var(--cyan); color:var(--cyan); transform:translateY(-3px); }
+
+  .scroll-cue{
+    position:absolute; bottom:38px; left:32px; display:flex; align-items:center; gap:10px;
+    font-family:'Space Mono'; font-size:11px; letter-spacing:2px; color:var(--ink-muted);
+  }
+  .scroll-cue .bar{ width:1px; height:40px; background:linear-gradient(var(--ink-muted), transparent); position:relative; overflow:hidden; }
+  .scroll-cue .bar::after{ content:''; position:absolute; top:-100%; left:0; width:100%; height:100%; background:var(--pink); animation:scrollLine 1.8s ease infinite; }
+  @keyframes scrollLine{ 0%{top:-100%;} 100%{top:100%;} }
+
+  /* timecode top-right of hero */
+  .timecode{
+    position:absolute; top:130px; right:32px; font-family:'Space Mono'; font-size:12px;
+    color:var(--ink-muted); letter-spacing:2px; text-align:right;
+  }
+  .timecode .rec{ color:var(--pink); }
+  .timecode .rec::before{ content:'● '; animation:blink 1.2s step-start infinite; }
+  @keyframes blink{ 50%{ opacity:0; } }
+
+  /* ---------- MARQUEE TICKER ---------- */
+  .ticker-band{
+    background:var(--grad); transform:rotate(-1.2deg); margin:100px 0 0; padding:16px 0;
+    overflow:hidden; white-space:nowrap;
+  }
+  .ticker-track{ display:inline-flex; animation:scrollTicker 28s linear infinite; }
+  .ticker-track span{
+    font-family:'Anton'; font-size:22px; color:#0a0a0e; padding:0 28px; text-transform:uppercase; letter-spacing:1px;
+  }
+  @keyframes scrollTicker{ 0%{transform:translateX(0);} 100%{transform:translateX(-50%);} }
+
+  /* ---------- SECTION GENERIC ---------- */
+  .section{ padding:130px 0; }
+  .section-head{ margin-bottom:64px; max-width:640px; }
+  .tag{
+    font-family:'Space Mono'; font-size:12px; letter-spacing:3px; text-transform:uppercase; color:var(--pink);
+    display:block; margin-bottom:16px;
+  }
+  .section-head h2{ font-size:clamp(34px,5vw,56px); }
+  .section-head p{ color:var(--ink-muted); margin-top:18px; font-size:16px; line-height:1.7; }
+
+  .reveal{ opacity:0; transform:translateY(40px); transition:opacity .8s ease, transform .8s ease; }
+  .reveal.in{ opacity:1; transform:translateY(0); }
+
+  /* ---------- ABOUT ---------- */
+  .about-grid{ display:grid; grid-template-columns:1.3fr 1fr; gap:70px; align-items:start; }
+  .about-grid p{ color:var(--ink-muted); font-size:17px; line-height:1.85; margin-bottom:18px; }
+  .about-grid strong{ color:var(--ink); }
+  .stat-list{ display:flex; flex-direction:column; gap:0; border-top:1px solid var(--line); }
+  .stat-item{ display:flex; justify-content:space-between; align-items:baseline; padding:22px 0; border-bottom:1px solid var(--line); }
+  .stat-item .num{ font-family:'Anton'; font-size:38px; background:var(--grad); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .stat-item .label{ font-family:'Space Mono'; font-size:12px; letter-spacing:1.5px; text-transform:uppercase; color:var(--ink-muted); text-align:right; }
+
+  /* ---------- SHOWREEL ---------- */
+  .reel{
+    position:relative; border-radius:18px; overflow:hidden; aspect-ratio:16/8;
+    background:linear-gradient(135deg,#1a1a24,#0a0a0e 60%);
+    border:1px solid var(--line);
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer;
+  }
+  .reel::before{
+    content:''; position:absolute; inset:0;
+    background:
+      linear-gradient(90deg, transparent 0%, rgba(255,46,126,0.12) 40%, rgba(0,224,255,0.12) 60%, transparent 100%);
+    animation:sweep 6s ease-in-out infinite;
+  }
+  @keyframes sweep{ 0%,100%{transform:translateX(-30%);} 50%{transform:translateX(30%);} }
+  .play-btn{
+    width:88px; height:88px; border-radius:50%; background:var(--ink); display:flex; align-items:center; justify-content:center;
+    position:relative; z-index:2; transition:transform .3s ease;
+  }
+  .reel:hover .play-btn{ transform:scale(1.1); }
+  .play-btn svg{ margin-left:6px; }
+  .reel-bars{
+    position:absolute; bottom:0; left:0; right:0; height:5px; display:flex; z-index:3;
+  }
+  .reel-bars div{ flex:1; height:100%; }
+  .reel-corner{
+    position:absolute; font-family:'Space Mono'; font-size:11px; color:var(--ink-muted); letter-spacing:2px; z-index:2;
+  }
+  .reel-corner.tl{ top:16px; left:20px; } .reel-corner.br{ bottom:16px; right:20px; }
+
+  /* ---------- ARTISTES ---------- */
+  .artist-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:2px; background:var(--line); border:1px solid var(--line); border-radius:16px; overflow:hidden; }
+  .artist-card{
+    background:var(--bg-panel); padding:38px 28px; position:relative; overflow:hidden;
+    transition:background .3s ease;
+  }
+  .artist-card:hover{ background:var(--bg-panel-2); }
+  .artist-card::before{
+    content:''; position:absolute; top:0; left:0; width:100%; height:3px; background:var(--grad);
+    transform:scaleX(0); transform-origin:left; transition:transform .35s ease;
+  }
+  .artist-card:hover::before{ transform:scaleX(1); }
+  .artist-mono{
+    width:52px; height:52px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+    font-family:'Anton'; font-size:18px; margin-bottom:22px; color:#0a0a0e;
+  }
+  .artist-card h3{ font-size:22px; margin-bottom:6px; letter-spacing:0.5px; }
+  .artist-card .role{ font-family:'Space Mono'; font-size:11px; letter-spacing:2px; color:var(--ink-muted); text-transform:uppercase; }
+
+  /* ---------- SERVICES ---------- */
+  .services-grid{ display:grid; grid-template-columns:repeat(2,1fr); gap:1px; background:var(--line); border:1px solid var(--line); border-radius:16px; overflow:hidden; }
+  .service-card{ background:var(--bg-panel); padding:44px; }
+  .service-card .idx{ font-family:'Space Mono'; color:var(--pink); font-size:13px; margin-bottom:16px; display:block; }
+  .service-card h3{ font-size:24px; margin-bottom:14px; }
+  .service-card p{ color:var(--ink-muted); font-size:15px; line-height:1.7; }
+
+  /* ---------- TOOLS ---------- */
+  .tools-row{ display:flex; flex-wrap:wrap; gap:14px; }
+  .tool-pill{
+    font-family:'Space Mono'; font-size:13px; letter-spacing:1px; padding:12px 22px; border-radius:100px;
+    border:1px solid var(--line); color:var(--ink-muted); transition:all .3s ease;
+  }
+  .tool-pill:hover{ border-color:var(--cyan); color:var(--cyan); transform:translateY(-2px); }
+
+  /* ---------- CONTACT ---------- */
+  .contact-grid{ display:grid; grid-template-columns:1fr 1fr; gap:70px; }
+  .field{ margin-bottom:22px; }
+  .field label{ font-family:'Space Mono'; font-size:11px; letter-spacing:2px; text-transform:uppercase; color:var(--ink-muted); display:block; margin-bottom:10px; }
+  .field input, .field textarea{
+    width:100%; background:transparent; border:none; border-bottom:1px solid var(--line);
+    color:var(--ink); font-family:'Manrope'; font-size:16px; padding:12px 0; outline:none;
+    transition:border-color .25s ease;
+  }
+  .field input:focus, .field textarea:focus{ border-color:var(--pink); }
+  .field textarea{ resize:vertical; min-height:90px; }
+  .contact-info{ display:flex; flex-direction:column; gap:28px; }
+  .contact-info .row{ display:flex; align-items:center; gap:16px; }
+  .contact-info .ico{
+    width:44px; height:44px; border-radius:12px; background:var(--bg-panel); display:flex; align-items:center; justify-content:center;
+    border:1px solid var(--line);
+  }
+  .contact-info .row div .k{ font-family:'Space Mono'; font-size:11px; color:var(--ink-muted); letter-spacing:1.5px; text-transform:uppercase; }
+  .contact-info .row div .v{ font-size:17px; margin-top:2px; }
+  .whatsapp-cta{
+    margin-top:10px; display:inline-flex; align-items:center; gap:12px; padding:18px 28px; border-radius:14px;
+    background:linear-gradient(135deg,#25D366,#1aa64f); color:#08150c; font-weight:800;
+    font-family:'Space Mono'; font-size:13px; letter-spacing:1px; text-transform:uppercase;
+    transition:transform .25s ease, box-shadow .25s ease; width:fit-content;
+  }
+  .whatsapp-cta:hover{ transform:translateY(-3px); box-shadow:0 12px 30px rgba(37,211,102,0.3); }
+
+  footer{ border-top:1px solid var(--line); padding:44px 0; }
+  footer .wrap{ display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:20px; }
+  footer p{ font-family:'Space Mono'; font-size:12px; color:var(--ink-muted); letter-spacing:1px; }
+  .footer-socials{ display:flex; gap:20px; }
+  .footer-socials a{ font-family:'Space Mono'; font-size:12px; color:var(--ink-muted); letter-spacing:1px; }
+  .footer-socials a:hover{ color:var(--pink); }
+
+  /* ---------- FLOATING WHATSAPP BUTTON ---------- */
+  .float-whatsapp{
+    position:fixed; bottom:28px; right:28px; z-index:600;
+    width:64px; height:64px; border-radius:50%;
+    background:linear-gradient(135deg,#25D366,#1aa64f);
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:0 8px 24px rgba(37,211,102,0.45);
+    animation:pulse 2.4s ease-in-out infinite;
+  }
+  .float-whatsapp:hover{ transform:scale(1.08); }
+  @keyframes pulse{
+    0%{ box-shadow:0 8px 24px rgba(37,211,102,0.45), 0 0 0 0 rgba(37,211,102,0.5); }
+    70%{ box-shadow:0 8px 24px rgba(37,211,102,0.45), 0 0 0 16px rgba(37,211,102,0); }
+    100%{ box-shadow:0 8px 24px rgba(37,211,102,0.45), 0 0 0 0 rgba(37,211,102,0); }
+  }
+
+  @media (max-width:860px){
+    .nav-links{ display:none; }
+    .burger{ display:flex; }
+    .about-grid, .contact-grid{ grid-template-columns:1fr; gap:44px; }
+    .artist-grid{ grid-template-columns:1fr 1fr; }
+    .services-grid{ grid-template-columns:1fr; }
+    .section{ padding:90px 0; }
+    .timecode{ display:none; }
+  }
+  @media (max-width:520px){
+    .artist-grid{ grid-template-columns:1fr; }
+    .wrap{ padding:0 20px; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ animation-duration:0.001ms !important; animation-iteration-count:1 !important; transition-duration:0.001ms !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="grain"></div>
+
+<div id="preloader">
+  <div class="slate">
+    <div class="slate-top"></div>
+    <div class="slate-body">
+      <div class="name">Constant Aka</div>
+      <div class="role">Réalisateur · Prise 01</div>
+    </div>
+  </div>
+</div>
+
+<header id="siteHeader">
+  <nav class="wrap">
+    <a href="#top" class="logo">CONSTANT<span>.</span>AKA</a>
+    <ul class="nav-links">
+      <li><a href="#about">À propos</a></li>
+      <li><a href="#reel">Showreel</a></li>
+      <li><a href="#artistes">Artistes</a></li>
+      <li><a href="#services">Services</a></li>
+      <li><a href="#contact">Contact</a></li>
+    </ul>
+    <button class="burger" id="burger"><span></span><span></span><span></span></button>
+  </nav>
+</header>
+
+<section class="hero" id="top">
+  <div class="wrap">
+    <div class="eyebrow">Réalisateur de clips vidéo — Abidjan, CI</div>
+    <h1>Constant<br>Aka</h1>
+    <p class="sub">Je transforme un son en image. Depuis Abidjan, je réalise des clips vidéo pour des artistes musiciens ivoiriens — direction artistique, mise en scène, montage et colorimétrie, du concept à la version finale.</p>
+    <div class="cta-row">
+      <a href="#artistes" class="btn btn-primary">Voir mes réalisations</a>
+      <a href="https://wa.me/2250503860534?text=Bonjour%20Constant%2C%20je%20souhaite%20discuter%20d%27un%20projet%20de%20clip%20vid%C3%A9o." target="_blank" class="btn btn-ghost">Discuter sur WhatsApp</a>
+    </div>
+  </div>
+  <div class="timecode">
+    <div class="rec">REC 00:00:12:04</div>
+    <div>ABJ / CI — 4K · 24FPS</div>
+  </div>
+  <div class="scroll-cue"><div class="bar"></div>SCROLL</div>
+</section>
+
+<div class="ticker-band">
+  <div class="ticker-track">
+    <span>LESKY</span><span>★</span><span>ALEX FIDJI</span><span>★</span><span>TRIPA GNINNIN</span><span>★</span><span>SUSPECT 95</span><span>★</span><span>TOTO LE BANZOU</span><span>★</span><span>ARRI</span><span>★</span><span>KEOU MOUSSO</span><span>★</span>
+    <span>LESKY</span><span>★</span><span>ALEX FIDJI</span><span>★</span><span>TRIPA GNINNIN</span><span>★</span><span>SUSPECT 95</span><span>★</span><span>TOTO LE BANZOU</span><span>★</span><span>ARRI</span><span>★</span><span>KEOU MOUSSO</span><span>★</span>
+  </div>
+</div>
+
+<section class="section" id="about">
+  <div class="wrap">
+    <div class="about-grid">
+      <div class="reveal">
+        <span class="tag">À propos</span>
+        <h2 style="margin-bottom:26px;">Le clip vidéo, <br>comme un langage</h2>
+        <p>Je m'appelle <strong>Constant Aka</strong>. Je travaille dans le visuel : je monte et je réalise des clips vidéo pour des artistes musiciens. Mon travail commence bien avant la caméra — dans l'écoute du son, dans l'univers de l'artiste, dans l'idée qui va porter le clip.</p>
+        <p>Sur le terrain, je m'occupe de la mise en scène, du cadrage, de la direction artistique et de la lumière. En post-production, je monte, j'étalonne et je peaufine chaque image jusqu'à ce que le rythme du montage colle parfaitement à celui de la musique.</p>
+        <p>J'ai eu la chance de collaborer avec des artistes comme <strong>Lesky, Alex Fidji, Tripa Gninnin, Suspect 95, Toto Le Banzou, Arri</strong> et <strong>Keou Mousso</strong>, entre autres — chacun avec un univers différent, chacun avec un clip pensé sur mesure.</p>
+      </div>
+      <div class="reveal">
+        <div class="stat-list">
+          <div class="stat-item"><span class="num">7+</span><span class="label">Artistes<br>accompagnés</span></div>
+          <div class="stat-item"><span class="num">100%</span><span class="label">Suivi du concept<br>à la livraison</span></div>
+          <div class="stat-item"><span class="num">4K</span><span class="label">Tournage &<br>montage</span></div>
+          <div class="stat-item"><span class="num">ABJ</span><span class="label">Basé à<br>Abidjan, CI</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="reel">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <span class="tag">Showreel</span>
+      <h2>Un aperçu du travail</h2>
+      <p>Une sélection de plans tournés et montés pour mes derniers projets clips. Envoie-moi un message pour recevoir le lien complet du showreel et des clips livrés.</p>
+    </div>
+    <div class="reel reveal" onclick="window.open('https://wa.me/2250503860534?text=Bonjour%20Constant%2C%20je%20souhaite%20voir%20votre%20showreel.','_blank')">
+      <div class="reel-corner tl">SHOWREEL_2026.MP4</div>
+      <div class="reel-corner br">00:47 / 02:18</div>
+      <div class="play-btn">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M6 4L20 12L6 20V4Z" fill="#0a0a0e"/></svg>
+      </div>
+      <div class="reel-bars">
+        <div style="background:var(--pink)"></div><div style="background:var(--violet)"></div><div style="background:var(--cyan)"></div><div style="background:var(--gold)"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="artistes">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <span class="tag">Collaborations</span>
+      <h2>Les artistes avec qui j'ai tourné</h2>
+      <p>Chaque clip est une nouvelle direction artistique, pensée avec l'artiste pour raconter son univers.</p>
+    </div>
+    <div class="artist-grid reveal">
+      <div class="artist-card"><div class="artist-mono" style="background:var(--pink)">LK</div><h3>Lesky</h3><div class="role">Clip vidéo</div></div>
+      <div class="artist-card"><div class="artist-mono" style="background:var(--cyan)">AF</div><h3>Alex Fidji</h3><div class="role">Clip vidéo</div></div>
+      <div class="artist-card"><div class="artist-mono" style="background:var(--gold)">TG</div><h3>Tripa Gninnin</h3><div class="role">Clip vidéo</div></div>
+      <div class="artist-card"><div class="artist-mono" style="background:var(--violet)">S95</div><h3>Suspect 95</h3><div class="role">Clip vidéo</div></div>
+      <div class="artist-card"><div class="artist-mono" style="background:var(--pink)">TB</div><h3>Toto Le Banzou</h3><div class="role">Clip vidéo</div></div>
+      <div class="artist-card"><div class="artist-mono" style="background:var(--cyan)">AR</div><h3>Arri</h3><div class="role">Clip vidéo</div></div>
+      <div class="artist-card"><div class="artist-mono" style="background:var(--gold)">KM</div><h3>Keou Mousso</h3><div class="role">Clip vidéo</div></div>
+      <div class="artist-card" style="display:flex;align-items:center;justify-content:center;"><a href="#contact" class="btn btn-ghost">+ Ton clip ici</a></div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="services">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <span class="tag">Services</span>
+      <h2>Ce que je fais pour ton clip</h2>
+      <p>De la première idée à la vidéo finale, un accompagnement complet sur chaque étape de la production.</p>
+    </div>
+    <div class="services-grid reveal">
+      <div class="service-card"><span class="idx">01</span><h3>Concept & scénario</h3><p>Écoute du son, construction de l'univers visuel et écriture du déroulé du clip.</p></div>
+      <div class="service-card"><span class="idx">02</span><h3>Réalisation & tournage</h3><p>Mise en scène, direction d'acteurs et de danseurs, cadrage et lumière sur le plateau.</p></div>
+      <div class="service-card"><span class="idx">03</span><h3>Montage vidéo</h3><p>Montage rythmé, calé sur la musique, avec transitions et effets adaptés au style du morceau.</p></div>
+      <div class="service-card"><span class="idx">04</span><h3>Colorimétrie & finition</h3><p>Étalonnage, habillage graphique et livraison de la vidéo aux formats pour toutes les plateformes.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="tools">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <span class="tag">Outils</span>
+      <h2>Ma boîte à outils</h2>
+    </div>
+    <div class="tools-row reveal">
+      <span class="tool-pill">Adobe Premiere Pro</span>
+      <span class="tool-pill">After Effects</span>
+      <span class="tool-pill">DaVinci Resolve</span>
+      <span class="tool-pill">Photoshop</span>
+      <span class="tool-pill">Caméra 4K</span>
+      <span class="tool-pill">Stabilisateur / Gimbal</span>
+      <span class="tool-pill">Drone</span>
+      <span class="tool-pill">Motion Design</span>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="contact">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <span class="tag">Contact</span>
+      <h2>On tourne ton prochain clip ?</h2>
+      <p>Écris-moi les détails de ton projet, ou passe directement en message sur WhatsApp.</p>
+    </div>
+    <div class="contact-grid">
+      <form class="reveal" onsubmit="event.preventDefault(); window.open('https://wa.me/2250503860534?text=' + encodeURIComponent('Bonjour Constant, je m\'appelle ' + this.nom.value + '. ' + this.message.value), '_blank');">
+        <div class="field"><label>Nom</label><input type="text" name="nom" required placeholder="Ton nom / nom d'artiste"></div>
+        <div class="field"><label>Email</label><input type="email" name="email" placeholder="ton@email.com"></div>
+        <div class="field"><label>Ton projet</label><textarea name="message" required placeholder="Parle-moi de ton morceau, du style de clip que tu imagines..."></textarea></div>
+        <button type="submit" class="btn btn-primary" style="border:none; cursor:pointer;">Envoyer le message</button>
+      </form>
+      <div class="contact-info reveal">
+        <div class="row">
+          <div class="ico">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--pink)" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.362 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.338 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+          </div>
+          <div><div class="k">Téléphone / WhatsApp</div><div class="v">+225 05 03 86 05 34</div></div>
+        </div>
+        <div class="row">
+          <div class="ico">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          </div>
+          <div><div class="k">Localisation</div><div class="v">Abidjan, Côte d'Ivoire</div></div>
+        </div>
+        <a href="https://wa.me/2250503860534?text=Bonjour%20Constant%2C%20je%20souhaite%20discuter%20d%27un%20projet%20de%20clip%20vid%C3%A9o." target="_blank" class="whatsapp-cta">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="#08150c"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.29-1.39a9.9 9.9 0 0 0 4.75 1.21h.01c5.46 0 9.9-4.45 9.9-9.91C21.96 6.45 17.5 2 12.04 2zm5.8 14.16c-.24.68-1.4 1.3-1.93 1.38-.5.08-1.12.11-1.8-.11-.42-.13-.96-.31-1.65-.6-2.9-1.25-4.8-4.15-4.94-4.34-.14-.19-1.18-1.57-1.18-3 0-1.42.75-2.12 1.02-2.41.27-.29.58-.36.78-.36.2 0 .39 0 .56.01.18.01.42-.07.66.5.24.58.83 2 .9 2.15.07.15.11.32.02.51-.09.19-.14.31-.28.47-.14.16-.29.36-.42.48-.14.13-.28.28-.12.55.16.27.72 1.19 1.55 1.93 1.06.95 1.96 1.24 2.23 1.38.27.14.43.12.59-.07.16-.19.68-.79.86-1.06.18-.27.36-.22.6-.13.24.09 1.53.72 1.79.85.26.13.43.19.5.3.07.11.07.63-.17 1.31z"/></svg>
+          Discuter sur WhatsApp
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <p>© 2026 Constant Aka — Réalisateur de clips vidéo, Abidjan.</p>
+    <div class="footer-socials">
+      <a href="https://wa.me/2250503860534" target="_blank">WhatsApp</a>
+      <a href="#top">Haut de page ↑</a>
+    </div>
+  </div>
+</footer>
+
+<a href="https://wa.me/2250503860534?text=Bonjour%20Constant%2C%20je%20souhaite%20discuter%20d%27un%20projet%20de%20clip%20vid%C3%A9o." target="_blank" class="float-whatsapp" aria-label="Discuter sur WhatsApp">
+  <svg width="30" height="30" viewBox="0 0 24 24" fill="#08150c"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.29-1.39a9.9 9.9 0 0 0 4.75 1.21h.01c5.46 0 9.9-4.45 9.9-9.91C21.96 6.45 17.5 2 12.04 2zm5.8 14.16c-.24.68-1.4 1.3-1.93 1.38-.5.08-1.12.11-1.8-.11-.42-.13-.96-.31-1.65-.6-2.9-1.25-4.8-4.15-4.94-4.34-.14-.19-1.18-1.57-1.18-3 0-1.42.75-2.12 1.02-2.41.27-.29.58-.36.78-.36.2 0 .39 0 .56.01.18.01.42-.07.66.5.24.58.83 2 .9 2.15.07.15.11.32.02.51-.09.19-.14.31-.28.47-.14.16-.29.36-.42.48-.14.13-.28.28-.12.55.16.27.72 1.19 1.55 1.93 1.06.95 1.96 1.24 2.23 1.38.27.14.43.12.59-.07.16-.19.68-.79.86-1.06.18-.27.36-.22.6-.13.24.09 1.53.72 1.79.85.26.13.43.19.5.3.07.11.07.63-.17 1.31z"/></svg>
+</a>
+
+<script>
+  // header scroll state
+  const header = document.getElementById('siteHeader');
+  window.addEventListener('scroll', () => {
+    header.classList.toggle('scrolled', window.scrollY > 40);
+  });
+
+  // scroll reveal
+  const revealEls = document.querySelectorAll('.reveal');
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
+  }, { threshold: 0.15 });
+  revealEls.forEach(el => io.observe(el));
+
+  // mobile menu (simple toggle -> smooth scroll close)
+  const burger = document.getElementById('burger');
+  const navLinks = document.querySelector('.nav-links');
+  burger.addEventListener('click', () => {
+    navLinks.style.display = navLinks.style.display === 'flex' ? 'none' : 'flex';
+    navLinks.style.cssText += 'position:fixed; top:70px; left:20px; right:20px; background:#121218; flex-direction:column; padding:24px; border-radius:14px; border:1px solid rgba(244,243,247,0.1); z-index:400;';
+  });
+  document.querySelectorAll('.nav-links a').forEach(a => a.addEventListener('click', () => { if(window.innerWidth<=860){ navLinks.style.display='none'; } }));
+
+  // remove preloader from DOM after animation
+  setTimeout(() => { const p = document.getElementById('preloader'); if(p) p.style.display='none'; }, 2600);
+</script>
+
+</body>
+</html>
